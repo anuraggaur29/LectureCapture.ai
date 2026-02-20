@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LectureCapture — History</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://js.puter.com/v2/"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <span class="logo">🎓</span>
+      LectureCapture
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link">Upload</a>
+      <a href="history.html" class="nav-link active">History</a>
+      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+    </div>
+  </nav>
+
+  <div class="page-container">
+    <!-- HEADER -->
+    <div class="page-header">
+      <h1>📚 Lecture History</h1>
+      <a href="index.html" class="btn-outline">+ New Upload</a>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-bar" id="stats-bar"></div>
+
+    <!-- LECTURE LIST -->
+    <div class="lecture-grid" id="lecture-grid"></div>
+
+    <!-- EMPTY STATE -->
+    <div class="empty-state" id="empty-state" style="display:none;">
+      <span class="empty-icon">📭</span>
+      <p>No lectures yet. Upload your first recording!</p>
+      <a href="index.html" class="btn-outline">🎙️ Upload Lecture</a>
+    </div>
+  </div>
+
+  <!-- NOTES SLIDE-OVER PANEL -->
+  <div class="notes-overlay" id="notes-overlay"></div>
+  <div class="notes-drawer" id="notes-drawer" style="display:none;">
+    <div class="notes-header">
+      <h2 id="notes-title">Lecture Notes</h2>
+      <div class="notes-actions">
+        <button class="download-btn" id="download-notes" title="Download notes">⬇ Download</button>
+        <button class="close-btn" id="close-notes">✕</button>
+      </div>
+    </div>
+    <div class="notes-content" id="notes-content"></div>
+  </div>
+
+  <footer class="footer">
+    © <span id="footer-year"></span> LectureCapture · Created by <strong>Anurag</strong> · All Rights Reserved
+  </footer>
+  <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
+
+  <script>
+    // Theme
+    function toggleTheme() {
+      const html = document.documentElement;
+      const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+      html.dataset.theme = next;
+      localStorage.setItem('theme', next);
+      document.querySelector('.theme-toggle').textContent = next === 'dark' ? '☀️' : '🌙';
+    }
+    (function() {
+      const t = localStorage.getItem('theme') || 'light';
+      document.documentElement.dataset.theme = t;
+      document.querySelector('.theme-toggle').textContent = t === 'dark' ? '☀️' : '🌙';
+    })();
+
+    // IndexedDB
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open('LectureCaptureDB', 1);
+        req.onupgradeneeded = e => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('lectures')) {
+            const store = db.createObjectStore('lectures', { keyPath: 'id', autoIncrement: true });
+            store.createIndex('created_at', 'created_at');
+          }
+        };
+        req.onsuccess = e => resolve(e.target.result);
+        req.onerror = e => reject(e.target.error);
+      });
+    }
+
+    async function getAllLectures() {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('lectures', 'readonly');
+        const store = tx.objectStore('lectures');
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result.reverse());
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function getLecture(id) {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('lectures', 'readonly');
+        const store = tx.objectStore('lectures');
+        const req = store.get(id);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function deleteLecture(id) {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('lectures', 'readwrite');
+        const store = tx.objectStore('lectures');
+        const req = store.delete(id);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    // Render
+    const grid = document.getElementById('lecture-grid');
+    const empty = document.getElementById('empty-state');
+    const overlay = document.getElementById('notes-overlay');
+    const drawer = document.getElementById('notes-drawer');
+    const notesContent = document.getElementById('notes-content');
+    const notesTitle = document.getElementById('notes-title');
+    const closeBtn = document.getElementById('close-notes');
+    const downloadBtn = document.getElementById('download-notes');
+    const statsBar = document.getElementById('stats-bar');
+
+    let currentNotesMd = '';
+    let currentFilename = '';
+
+    function closeNotes() {
+      overlay.classList.remove('show');
+      drawer.style.display = 'none';
+    }
+
+    closeBtn.addEventListener('click', closeNotes);
+    overlay.addEventListener('click', closeNotes);
+
+    downloadBtn.addEventListener('click', () => {
+      if (!currentNotesMd) return;
+      const blob = new Blob([currentNotesMd], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = currentFilename.replace(/\.[^.]+$/, '') + '_notes.md';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    async function renderNotes(id) {
+      const lecture = await getLecture(id);
+      if (!lecture) return;
+      notesTitle.textContent = lecture.filename;
+      currentNotesMd = lecture.notes;
+      currentFilename = lecture.filename;
+      notesContent.innerHTML = marked.parse(lecture.notes);
+
+      overlay.classList.add('show');
+      drawer.style.display = 'block';
+    }
+
+    async function loadPage() {
+      const lectures = await getAllLectures();
+
+      if (!lectures.length) {
+        empty.style.display = 'block';
+        grid.style.display = 'none';
+        statsBar.innerHTML = '';
+        return;
+      }
+
+      empty.style.display = 'none';
+      grid.style.display = 'grid';
+
+      // Stats
+      statsBar.innerHTML = `
+        <div class="stat-item"><div class="stat-value">${lectures.length}</div><div class="stat-label">Lectures</div></div>
+        <div class="stat-item"><div class="stat-value">${new Set(lectures.map(l => l.created_at?.split('T')[0])).size}</div><div class="stat-label">Days</div></div>
+      `;
+
+      grid.innerHTML = '';
+      lectures.forEach(l => {
+        const row = document.createElement('div');
+        row.className = 'lecture-row';
+        row.innerHTML = `
+          <div class="lecture-icon">📄</div>
+          <div class="lecture-info">
+            <div class="lecture-title">${l.filename}</div>
+            <div class="lecture-date">${new Date(l.created_at).toLocaleString()}</div>
+          </div>
+          <button class="delete-btn" title="Delete lecture">🗑️</button>
+          <span class="lecture-arrow">→</span>
+        `;
+        row.querySelector('.delete-btn').addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (confirm('Delete this lecture?')) {
+            await deleteLecture(l.id);
+            loadPage();
+          }
+        });
+        row.addEventListener('click', () => renderNotes(l.id));
+        grid.appendChild(row);
+      });
+    }
+
+    loadPage();
+  </script>
+</body>
+</html>

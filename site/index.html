@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LectureCapture — AI Lecture Notes</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://js.puter.com/v2/"></script>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">
+      <span class="logo">🎓</span>
+      LectureCapture
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="nav-link active">Upload</a>
+      <a href="history.html" class="nav-link">History</a>
+      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <span class="hero-badge">⚡ Powered by AI</span>
+    <h1>Turn Lectures into<br><span class="gradient-text">Structured Notes</span></h1>
+    <p>Upload any lecture recording and get beautifully organized notes with tables, diagrams, and flashcards — in seconds.</p>
+  </section>
+
+  <!-- FEATURES -->
+  <div class="features">
+    <div class="feature-chip"><span class="icon">🎙️</span> Audio to Text</div>
+    <div class="feature-chip"><span class="icon">🧹</span> Smart Cleaning</div>
+    <div class="feature-chip"><span class="icon">📊</span> Tables & Diagrams</div>
+    <div class="feature-chip"><span class="icon">🃏</span> Revision Flashcards</div>
+  </div>
+
+  <!-- UPLOAD CARD -->
+  <div class="upload-section">
+    <div class="upload-card">
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="audio" accept="audio/*,video/*,.mp3,.wav,.m4a,.ogg,.webm,.mp4" />
+        <span class="drop-icon">📁</span>
+        <p>Drag & drop your lecture file or <span class="browse">browse</span></p>
+        <p style="font-size:.78rem;color:var(--text-3);margin-top:6px;">MP3, WAV, M4A, OGG, MP4 supported</p>
+      </div>
+
+      <div class="file-info" id="file-info">
+        <div class="file-icon">🎵</div>
+        <div class="file-details">
+          <div class="file-name" id="file-name"></div>
+          <div class="file-size" id="file-size"></div>
+        </div>
+        <button class="remove-file" id="remove-file">✕</button>
+      </div>
+
+      <button class="btn-primary" id="btn-submit" disabled>
+        <span id="btn-text">Upload & Process</span>
+      </button>
+
+      <!-- PROGRESS -->
+      <div class="progress-section" id="progress-section">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="progress-bar"></div>
+        </div>
+        <div class="progress-steps">
+          <div class="progress-step" id="step-1">
+            <span class="step-icon">1</span>
+            <span>Transcribing audio with Whisper…</span>
+          </div>
+          <div class="progress-step" id="step-2">
+            <span class="step-icon">2</span>
+            <span>Cleaning transcript with AI…</span>
+          </div>
+          <div class="progress-step" id="step-3">
+            <span class="step-icon">3</span>
+            <span>Generating structured notes…</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="status-message" id="status"></div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    © <span id="footer-year"></span> LectureCapture · Created by <strong>Anurag</strong> · All Rights Reserved
+  </footer>
+  <script>document.getElementById('footer-year').textContent = new Date().getFullYear();</script>
+
+  <script src="app.js"></script>
+</body>
+</html>

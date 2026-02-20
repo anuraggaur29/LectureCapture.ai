@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LectureCapture — History</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; padding: 32px; max-width: 900px; margin: auto; }
+    h1 { margin-bottom: 20px; }
+    a.back { color: #2563eb; text-decoration: none; display: inline-block; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #fafafa; font-weight: 600; }
+    .btn { color: #2563eb; cursor: pointer; border: none; background: none; font-size: .95rem; }
+    #notes-panel { margin-top: 24px; background: #fff; padding: 32px; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,.06); display: none; line-height: 1.8; }
+    #notes-body h1 { font-size: 1.5rem; margin: 20px 0 8px; }
+    #notes-body h2 { font-size: 1.2rem; margin: 18px 0 6px; color: #1e3a5f; border-bottom: 2px solid #e5e7eb; padding-bottom: 4px; }
+    #notes-body hr { border: none; border-top: 1px solid #e5e7eb; margin: 16px 0; }
+    #notes-body ul, #notes-body ol { padding-left: 24px; margin: 8px 0; }
+    #notes-body li { margin: 4px 0; }
+    #notes-body p { margin: 8px 0; }
+    #notes-body strong { color: #111; }
+    #notes-body table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .93rem; }
+    #notes-body th { background: #f0f4ff; font-weight: 600; text-align: left; padding: 10px 14px; border: 1px solid #d1d5db; }
+    #notes-body td { padding: 10px 14px; border: 1px solid #d1d5db; }
+    #notes-body tr:nth-child(even) { background: #f9fafb; }
+    #notes-body .mermaid { margin: 16px 0; text-align: center; }
+    #notes-body code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: .9rem; }
+    #notes-body blockquote { border-left: 4px solid #2563eb; padding: 8px 16px; margin: 12px 0; background: #f0f4ff; }
+  </style>
+</head>
+<body>
+  <a class="back" href="/">← Upload New</a>
+  <h1>📜 Lecture History</h1>
+  <table>
+    <thead><tr><th>Date</th><th>File</th><th></th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div id="notes-panel"><div id="notes-body"></div></div>
+
+  <script>
+    const rows = document.getElementById("rows");
+    const panel = document.getElementById("notes-panel");
+    const nBody = document.getElementById("notes-body");
+
+    fetch("/lectures").then(r => r.json()).then(data => {
+      if (!data.length) { rows.innerHTML = "<tr><td colspan=3>No lectures yet.</td></tr>"; return; }
+      data.forEach(l => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${l.created_at}</td><td>${l.filename}</td><td><button class="btn" data-id="${l.id}">Open</button></td>`;
+        rows.appendChild(tr);
+      });
+    });
+
+    mermaid.initialize({ startOnLoad: false, theme: 'default' });
+
+    rows.addEventListener("click", async (e) => {
+      if (!e.target.dataset.id) return;
+      const res = await fetch(`/lectures/${e.target.dataset.id}`);
+      const d = await res.json();
+      nBody.innerHTML = marked.parse(d.notes);
+      // Convert mermaid code blocks to renderable divs
+      nBody.querySelectorAll('pre code.language-mermaid, pre code.language-mermaid\n').forEach(el => {
+        const div = document.createElement('div');
+        div.className = 'mermaid';
+        div.textContent = el.textContent;
+        el.closest('pre').replaceWith(div);
+      });
+      const mermaidDivs = nBody.querySelectorAll('.mermaid');
+      if (mermaidDivs.length) {
+        try { await mermaid.run({ nodes: mermaidDivs }); } catch(e) { console.warn('Mermaid render:', e); }
+      }
+      panel.style.display = "block";
+      panel.scrollIntoView({ behavior: "smooth" });
+    });
+  </script>
+</body>
+</html>

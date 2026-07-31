@@ -13,16 +13,18 @@ logging.basicConfig(
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="LectureCapture AI v2 — Ingests Video, Audio, and PDF to generate structured study sheets via Mistral AI & Gemini."
+    description="LectureCapture AI v2 — Ingests Video, Audio, and PDF to generate structured study sheets via Mistral AI."
 )
 
-# Enable CORS for Vercel deployment and local dev
+# Enable CORS allowing all origins for Vercel deployment
+# NOTE: allow_credentials must be False when allow_origins is ["*"] according to CORS spec.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Include routers

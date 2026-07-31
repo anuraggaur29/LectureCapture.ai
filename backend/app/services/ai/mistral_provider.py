@@ -1,9 +1,15 @@
 import json
+import logging
 import httpx
 from app.services.ai.base_provider import BaseAIProvider
 from app.prompts.study_sheet_prompt import STUDY_SHEET_SYSTEM_PROMPT
 from app.schemas.study_sheet import StudySheetResponse
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
+
+# Max input length (~100,000 chars ≈ 25,000 tokens) to prevent context limit errors
+MAX_INPUT_CHARS = 100000
 
 class MistralAIProvider(BaseAIProvider):
     def __init__(self):
@@ -17,6 +23,11 @@ class MistralAIProvider(BaseAIProvider):
     async def generate_study_sheet(self, text_content: str) -> StudySheetResponse:
         if not self.api_key:
             raise RuntimeError("Mistral API key (MISTRAL_API_KEY) is missing.")
+
+        # Truncate overly massive transcripts/documents to fit comfortably in token limits
+        if len(text_content) > MAX_INPUT_CHARS:
+            logger.info(f"Truncating long text content from {len(text_content)} to {MAX_INPUT_CHARS} characters for high-yield note generation.")
+            text_content = text_content[:MAX_INPUT_CHARS] + "\n\n[... Note: Extended material truncated to maintain concise 1-page study sheet focus ...]"
 
         url = "https://api.mistral.ai/v1/chat/completions"
         headers = {

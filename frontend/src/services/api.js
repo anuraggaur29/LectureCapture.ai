@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Backend URL fallback (for local dev and Vercel production deployment)
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:7860';
+// Live production backend fallback URL
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://lecturecapture-ai-backend.vercel.app';
 
 export async function processFile(file, onProgress) {
   const formData = new FormData();
@@ -19,5 +19,5 @@ export async function processFile(file, onProgress) {
     },
   });
 
-  return response.data; // { success: true, provider_used: "Mistral AI", data: StudySheetResponse }
+  return response.data;
 }

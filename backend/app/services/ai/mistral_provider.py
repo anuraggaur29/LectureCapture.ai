@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import httpx
 from app.services.ai.base_provider import BaseAIProvider
 from app.prompts.study_sheet_prompt import STUDY_SHEET_SYSTEM_PROMPT
@@ -13,16 +14,20 @@ MAX_INPUT_CHARS = 100000
 
 class MistralAIProvider(BaseAIProvider):
     def __init__(self):
-        self.api_key = settings.MISTRAL_API_KEY
         self.model = "mistral-small-latest"
 
     @property
     def name(self) -> str:
         return "Mistral AI"
 
+    @property
+    def api_key(self) -> str:
+        return os.getenv("MISTRAL_API_KEY") or settings.MISTRAL_API_KEY
+
     async def generate_study_sheet(self, text_content: str) -> StudySheetResponse:
-        if not self.api_key:
-            raise RuntimeError("Mistral API key (MISTRAL_API_KEY) is missing.")
+        key = self.api_key
+        if not key:
+            raise RuntimeError("Mistral API key (MISTRAL_API_KEY) is missing. Please set MISTRAL_API_KEY in your environment variables.")
 
         # Truncate overly massive transcripts/documents to fit comfortably in token limits
         if len(text_content) > MAX_INPUT_CHARS:
@@ -31,7 +36,7 @@ class MistralAIProvider(BaseAIProvider):
 
         url = "https://api.mistral.ai/v1/chat/completions"
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {key}",
             "Content-Type": "application/json",
             "Accept": "application/json",
         }
